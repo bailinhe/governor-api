@@ -65,7 +65,7 @@ func findERDForExtensionResource(
 	return
 }
 
-// createExtensionResource creates a system extension resource
+// createSystemExtensionResource creates a system extension resource
 func (r *Router) createSystemExtensionResource(c *gin.Context) {
 	defer c.Request.Body.Close()
 
@@ -122,7 +122,7 @@ func (r *Router) createSystemExtensionResource(c *gin.Context) {
 	}
 
 	if err := schema.Validate(v); err != nil {
-		sendError(c, http.StatusBadRequest, "invalid "+err.Error())
+		sendError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -166,4 +166,74 @@ func (r *Router) createSystemExtensionResource(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusAccepted, resp)
+}
+
+// listSystemExtensionResource lists system extension resources for an ERD
+func (r *Router) listSystemExtensionResource(c *gin.Context) {
+	defer c.Request.Body.Close()
+
+	extensionSlug := c.Param("ex-slug")
+	erdSlugPlural := c.Param("erd-slug-plural")
+	erdVersion := c.Param("erd-version")
+
+	// find ERD
+	_, erd, err := findERDForExtensionResource(
+		c.Request.Context(), r.DB,
+		extensionSlug, erdSlugPlural, erdVersion,
+	)
+	if err != nil {
+		if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
+			sendError(c, http.StatusNotFound, err.Error())
+			return
+		}
+
+		sendError(c, http.StatusBadRequest, err.Error())
+
+		return
+	}
+
+	if erd.Scope != ExtensionResourceDefinitionScopeSys {
+		sendError(
+			c, http.StatusBadRequest,
+			fmt.Sprintf(
+				"cannot list system resources for %s scoped %s/%s",
+				erd.Scope, erd.SlugSingular, erd.Version,
+			),
+		)
+
+		return
+	}
+
+	uriQueries := map[string]string{}
+	if err := c.BindQuery(&uriQueries); err != nil {
+		sendError(
+			c, http.StatusBadRequest,
+			fmt.Sprintf("error binding uri queries: %s", err.Error()),
+		)
+
+		return
+	}
+
+	qms := make([]qm.QueryMod, 0, len(uriQueries))
+
+	for k, v := range uriQueries {
+		if k == "deleted" {
+			qms = append(qms, qm.WithDeleted())
+			continue
+		}
+
+		qms = append(qms, qm.Where("resource->? = ?", k, v))
+	}
+
+	ers, err := erd.SystemExtensionResources(qms...).All(c.Request.Context(), r.DB)
+	if err != nil {
+		sendError(
+			c, http.StatusBadRequest,
+			"error finding extension resources: "+err.Error(),
+		)
+
+		return
+	}
+
+	c.JSON(http.StatusOK, ers)
 }
