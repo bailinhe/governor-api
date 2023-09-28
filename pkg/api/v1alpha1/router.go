@@ -661,6 +661,14 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:extensions")),
 		r.deleteExtensionResourceDefinition,
 	)
+
+	// system-wise extension resources
+	rg.POST(
+		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
+		r.AuditMW.AuditWithType("CreateSystemExtensionResource"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
+		r.createSystemExtensionResource,
+	)
 }
 
 func contains(list []string, item string) bool {
