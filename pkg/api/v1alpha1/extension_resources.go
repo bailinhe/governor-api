@@ -298,3 +298,67 @@ func (r *Router) listSystemExtensionResource(c *gin.Context) {
 
 	c.JSON(http.StatusOK, ers)
 }
+
+// getSystemExtensionResource fetches a system extension resources
+func (r *Router) getSystemExtensionResource(c *gin.Context) {
+	defer c.Request.Body.Close()
+
+	extensionSlug := c.Param("ex-slug")
+	erdSlugPlural := c.Param("erd-slug-plural")
+	erdVersion := c.Param("erd-version")
+	resourceID := c.Param("resource-id")
+	_, deleted := c.GetQuery("deleted")
+
+	// find ERD
+	_, erd, err := findERDForExtensionResource(
+		c.Request.Context(), r.DB,
+		extensionSlug, erdSlugPlural, erdVersion,
+	)
+	if err != nil {
+		if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
+			sendError(c, http.StatusNotFound, err.Error())
+			return
+		}
+
+		sendError(c, http.StatusBadRequest, err.Error())
+
+		return
+	}
+
+	if erd.Scope != ExtensionResourceDefinitionScopeSys {
+		sendError(
+			c, http.StatusBadRequest,
+			fmt.Sprintf(
+				"cannot get system resource for %s scoped %s/%s",
+				erd.Scope, erd.SlugSingular, erd.Version,
+			),
+		)
+
+		return
+	}
+
+	qms := []qm.QueryMod{
+		qm.Where("id = ?", resourceID),
+	}
+
+	if deleted {
+		qms = append(qms, qm.WithDeleted())
+	}
+
+	ers, err := erd.SystemExtensionResources(qms...).One(c.Request.Context(), r.DB)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			sendError(c, http.StatusNotFound, "resource not found: "+err.Error())
+			return
+		}
+
+		sendError(
+			c, http.StatusBadRequest,
+			"error finding extension resources: "+err.Error(),
+		)
+
+		return
+	}
+
+	c.JSON(http.StatusOK, ers)
+}
