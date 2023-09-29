@@ -674,7 +674,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
 		r.AuditMW.AuditWithType("ListSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
-		r.listSystemExtensionResource,
+		r.listSystemExtensionResources,
 	)
 
 	rg.GET(
@@ -682,6 +682,20 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.AuditMW.AuditWithType("GetSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
 		r.getSystemExtensionResource,
+	)
+
+	rg.PATCH(
+		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
+		r.AuditMW.AuditWithType("UpdateSystemExtensionResource"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
+		r.updateSystemExtensionResource,
+	)
+
+	rg.DELETE(
+		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
+		r.AuditMW.AuditWithType("DeleteSystemExtensionResource"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
+		r.deleteSystemExtensionResource,
 	)
 }
 
