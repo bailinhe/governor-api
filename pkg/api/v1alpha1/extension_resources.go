@@ -10,7 +10,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/metal-toolbox/auditevent/ginaudit"
+	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/models"
+	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
@@ -80,7 +83,7 @@ func (r *Router) createSystemExtensionResource(c *gin.Context) {
 	}
 
 	// find ERD
-	_, erd, err := findERDForExtensionResource(
+	extension, erd, err := findERDForExtensionResource(
 		c.Request.Context(), r.DB,
 		extensionSlug, erdSlugPlural, erdVersion,
 	)
@@ -147,6 +150,37 @@ func (r *Router) createSystemExtensionResource(c *gin.Context) {
 		return
 	}
 
+	event, err := dbtools.AuditSystemExtensionResourceCreated(
+		c.Request.Context(),
+		tx,
+		getCtxAuditID(c),
+		getCtxUser(c),
+		er,
+	)
+	if err != nil {
+		msg := fmt.Sprintf("error creating extension resource (audit): %s", err.Error())
+
+		if err := tx.Rollback(); err != nil {
+			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
+		}
+
+		sendError(c, http.StatusBadRequest, msg)
+
+		return
+	}
+
+	if err := updateContextWithAuditEventData(c, event); err != nil {
+		msg := fmt.Sprintf("error creating extension: %s", err.Error())
+
+		if err := tx.Rollback(); err != nil {
+			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
+		}
+
+		sendError(c, http.StatusBadRequest, msg)
+
+		return
+	}
+
 	if err := tx.Commit(); err != nil {
 		msg := fmt.Sprintf("error committing extension create: %s", err.Error())
 
@@ -155,6 +189,33 @@ func (r *Router) createSystemExtensionResource(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusBadRequest, msg)
+
+		return
+	}
+
+	err = r.EventBus.Publish(
+		c.Request.Context(),
+		erd.SlugPlural,
+		&events.Event{
+			Version:                       erd.Version,
+			Action:                        events.GovernorEventCreate,
+			AuditID:                       c.GetString(ginaudit.AuditIDContextKey),
+			ActorID:                       getCtxActorID(c),
+			ExtensionID:                   extension.ID,
+			ExtensionResourceID:           er.ID,
+			ExtensionResourceDefinitionID: erd.ID,
+		},
+	)
+	if err != nil {
+		sendError(
+			c,
+			http.StatusBadRequest,
+			fmt.Sprintf(
+				"failed to publish extension create event: %s\n%s",
+				err.Error(),
+				"downstream changes may be delayed",
+			),
+		)
 
 		return
 	}
