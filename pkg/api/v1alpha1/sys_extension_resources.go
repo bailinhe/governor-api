@@ -14,7 +14,7 @@ import (
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/models"
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
-	jsonschema "github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/metal-toolbox/governor-api/pkg/jsonschema"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
@@ -106,7 +106,12 @@ func (r *Router) createSystemExtensionResource(c *gin.Context) {
 	}
 
 	// schema validator
-	schema, err := jsonschema.CompileString("https://governor/s.json", erd.Schema.String())
+	compiler := jsonschema.NewCompiler(
+		extension.Slug, erd.SlugPlural, erd.Version,
+		jsonschema.WithUniqueConstrain(c.Request.Context(), erd, r.DB),
+	)
+
+	schema, err := compiler.Compile(erd.Schema.String())
 	if err != nil {
 		sendError(c, http.StatusBadRequest, "ERD schema is not valid: "+err.Error())
 		return
@@ -418,7 +423,12 @@ func (r *Router) updateSystemExtensionResource(c *gin.Context) {
 	}
 
 	// schema validator
-	schema, err := jsonschema.CompileString("https://governor", erd.Schema.String())
+	compiler := jsonschema.NewCompiler(
+		extension.Slug, erd.SlugPlural, erd.Version,
+		jsonschema.WithUniqueConstrain(c.Request.Context(), erd, r.DB),
+	)
+
+	schema, err := compiler.Compile(erd.Schema.String())
 	if err != nil {
 		sendError(c, http.StatusBadRequest, "ERD schema is not valid: "+err.Error())
 		return
