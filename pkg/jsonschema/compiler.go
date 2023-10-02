@@ -44,13 +44,14 @@ func NewCompiler(
 func WithUniqueConstraint(
 	ctx context.Context,
 	extensionResourceDefinition *models.ExtensionResourceDefinition,
+	resourceID *string,
 	db boil.ContextExecutor,
 ) Option {
 	return func(c *Compiler) {
 		c.RegisterExtension(
 			"uniqueConstraint",
 			JSONSchemaUniqueConstraint,
-			&UniqueConstraintCompiler{extensionResourceDefinition, ctx, db},
+			&UniqueConstraintCompiler{extensionResourceDefinition, resourceID, ctx, db},
 		)
 	}
 }

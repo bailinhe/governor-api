@@ -108,7 +108,7 @@ func (r *Router) createSystemExtensionResource(c *gin.Context) {
 	// schema validator
 	compiler := jsonschema.NewCompiler(
 		extension.Slug, erd.SlugPlural, erd.Version,
-		jsonschema.WithUniqueConstraint(c.Request.Context(), erd, r.DB),
+		jsonschema.WithUniqueConstraint(c.Request.Context(), erd, nil, r.DB),
 	)
 
 	schema, err := compiler.Compile(erd.Schema.String())
@@ -425,7 +425,7 @@ func (r *Router) updateSystemExtensionResource(c *gin.Context) {
 	// schema validator
 	compiler := jsonschema.NewCompiler(
 		extension.Slug, erd.SlugPlural, erd.Version,
-		jsonschema.WithUniqueConstraint(c.Request.Context(), erd, r.DB),
+		jsonschema.WithUniqueConstraint(c.Request.Context(), erd, &er.ID, r.DB),
 	)
 
 	schema, err := compiler.Compile(erd.Schema.String())

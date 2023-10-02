@@ -33,7 +33,7 @@ func (s *UniqueConstrainTestSuite) seedTestDB() error {
 		'00000001-0000-0000-0000-000000000001');
 		`,
 		`INSERT INTO system_extension_resources (id, resource, extension_resource_definition_id) 
-		VALUES ( '00000001-0000-0000-0000-000000000003', '{"age": 10, "firstName": "Hello", "lastName": "World"}'::jsonb, '00000001-0000-0000-0000-000000000002');`,
+		VALUES ('00000001-0000-0000-0000-000000000003', '{"age": 10, "firstName": "Hello", "lastName": "World"}'::jsonb, '00000001-0000-0000-0000-000000000002');`,
 	}
 
 	for _, q := range testData {
@@ -164,9 +164,12 @@ func (s *UniqueConstrainTestSuite) TestCompile() {
 }
 
 func (s *UniqueConstrainTestSuite) TestValidate() {
+	resourceID := "00000001-0000-0000-0000-000000000003"
+
 	tests := []struct {
 		name         string
 		db           boil.ContextExecutor
+		resourceID   *string
 		value        interface{}
 		uniqueFields map[string]string
 		expectedErr  string
@@ -195,11 +198,31 @@ func (s *UniqueConstrainTestSuite) TestValidate() {
 			expectedErr:  "unique constraint violation",
 		},
 		{
+			name:         "allow self updates (string)",
+			db:           s.db,
+			resourceID:   &resourceID,
+			value:        map[string]interface{}{"firstName": "Hello", "lastName": "World"},
+			uniqueFields: map[string]string{"firstName": "string", "lastName": "string"},
+		},
+		{
+			name:         "empty unique fields",
+			db:           s.db,
+			value:        map[string]interface{}{"firstName": "Hello", "lastName": "World", "age": 10},
+			uniqueFields: map[string]string{},
+		},
+		{
 			name:         "value matches uniqueFields (int)",
 			db:           s.db,
 			value:        map[string]interface{}{"firstName": "Hello", "age": 10},
 			uniqueFields: map[string]string{"firstName": "string", "age": "int"},
 			expectedErr:  "unique constraint violation",
+		},
+		{
+			name:         "allow self updates (int)",
+			db:           s.db,
+			resourceID:   &resourceID,
+			value:        map[string]interface{}{"firstName": "Hello", "age": 10},
+			uniqueFields: map[string]string{"firstName": "string", "age": "int"},
 		},
 	}
 
@@ -217,6 +240,7 @@ func (s *UniqueConstrainTestSuite) TestValidate() {
 				ERD:                 erd,
 				ctx:                 context.Background(),
 				db:                  tt.db,
+				ResourceID:          tt.resourceID,
 			}
 
 			err := schema.Validate(jsonschema.ValidationContext{}, tt.value)

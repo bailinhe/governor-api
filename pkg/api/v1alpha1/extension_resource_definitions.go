@@ -205,10 +205,10 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 			c.Request.Context(),
 			&models.ExtensionResourceDefinition{},
 			nil,
+			nil,
 		),
 	)
 
-	fmt.Println(schema)
 	if _, err := compiler.Compile(schema); err != nil {
 		sendError(c, http.StatusBadRequest, "ERD schema is not valid: "+err.Error())
 		return

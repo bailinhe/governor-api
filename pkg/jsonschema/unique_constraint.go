@@ -31,6 +31,7 @@ var JSONSchemaUniqueConstraint = jsonschema.MustCompileString(
 type UniqueConstraintSchema struct {
 	UniqueFieldTypesMap map[string]string
 	ERD                 *models.ExtensionResourceDefinition
+	ResourceID          *string
 	ctx                 context.Context
 	db                  boil.ContextExecutor
 }
@@ -46,13 +47,22 @@ func (s *UniqueConstraintSchema) Validate(_ jsonschema.ValidationContext, v inte
 		return nil
 	}
 
+	// Skip validation if no constraint is provided
+	if len(s.UniqueFieldTypesMap) == 0 {
+		return nil
+	}
+
 	// Try to assert the provided value as a map, skip validation otherwise
 	mappedValue, ok := v.(map[string]interface{})
 	if !ok {
 		return nil
 	}
 
-	var qms []qm.QueryMod
+	qms := []qm.QueryMod{}
+
+	if s.ResourceID != nil {
+		qms = append(qms, qm.Where("id != ?", *s.ResourceID))
+	}
 
 	for key, value := range mappedValue {
 		// Convert the key and value to string
@@ -91,9 +101,10 @@ func (s *UniqueConstraintSchema) Validate(_ jsonschema.ValidationContext, v inte
 
 // UniqueConstraintCompiler is the compiler struct for the unique constraint JSON schema extension
 type UniqueConstraintCompiler struct {
-	ERD *models.ExtensionResourceDefinition
-	ctx context.Context
-	db  boil.ContextExecutor
+	ERD        *models.ExtensionResourceDefinition
+	ResourceID *string
+	ctx        context.Context
+	db         boil.ContextExecutor
 }
 
 // UniqueConstraintCompiler implements jsonschema.ExtCompiler
@@ -174,7 +185,7 @@ func (uc *UniqueConstraintCompiler) compileUniqueConstraint(uniqueFields, requir
 		resultUniqueFields[fieldName] = fieldType
 	}
 
-	return &UniqueConstraintSchema{resultUniqueFields, uc.ERD, uc.ctx, uc.db}, nil
+	return &UniqueConstraintSchema{resultUniqueFields, uc.ERD, uc.ResourceID, uc.ctx, uc.db}, nil
 }
 
 // Checks if the provided field type is valid for unique constraints

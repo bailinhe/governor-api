@@ -672,7 +672,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 
 	rg.GET(
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
-		r.AuditMW.AuditWithType("ListSystemExtensionResource"),
+		r.AuditMW.AuditWithType("ListSystemExtensionResources"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
 		r.listSystemExtensionResources,
 	)
