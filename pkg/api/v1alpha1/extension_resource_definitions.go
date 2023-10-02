@@ -201,7 +201,7 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 
 	compiler := jsonschema.NewCompiler(
 		extensionID, req.SlugPlural, req.Version,
-		jsonschema.WithUniqueConstrain(
+		jsonschema.WithUniqueConstraint(
 			c.Request.Context(),
 			&models.ExtensionResourceDefinition{},
 			nil,

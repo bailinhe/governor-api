@@ -7,7 +7,7 @@ var (
 	// is invalid
 	ErrInvalidUniqueProperty = errors.New(`property "unique" is invalid`)
 
-	// ErrUniqueConstrainViolation is returned when an object violates the unique
+	// ErrUniqueConstraintViolation is returned when an object violates the unique
 	// constrain
-	ErrUniqueConstrainViolation = errors.New("unique constrain violation")
+	ErrUniqueConstraintViolation = errors.New("unique constraint violation")
 )

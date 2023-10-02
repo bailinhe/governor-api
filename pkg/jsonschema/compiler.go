@@ -10,6 +10,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
+// Compiler is a struct for a JSON schema compiler
 type Compiler struct {
 	jsonschema.Compiler
 
@@ -35,21 +36,21 @@ func NewCompiler(
 	return c
 }
 
-// WithUniqueConstrain enables the unique constrain extension for a JSON
+// WithUniqueConstraint enables the unique constraint extension for a JSON
 // schema. An extra `unique` field can be added to the JSON schema, and the
 // Validator will ensure that the combination of every properties in the
 // array is unique within the given extension resource definition.
-// Note that unique constrain validation will be skipped if db is nil.
-func WithUniqueConstrain(
+// Note that unique constraint validation will be skipped if db is nil.
+func WithUniqueConstraint(
 	ctx context.Context,
 	extensionResourceDefinition *models.ExtensionResourceDefinition,
 	db boil.ContextExecutor,
 ) Option {
 	return func(c *Compiler) {
 		c.RegisterExtension(
-			"uniqueConstrain",
-			JSONSchemaUniqueConstrain,
-			&UniqueConstrainCompiler{extensionResourceDefinition, ctx, db},
+			"uniqueConstraint",
+			JSONSchemaUniqueConstraint,
+			&UniqueConstraintCompiler{extensionResourceDefinition, ctx, db},
 		)
 	}
 }

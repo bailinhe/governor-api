@@ -11,9 +11,9 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
-// JSONSchemaUniqueConstrain is a JSON schema extension that provides a
+// JSONSchemaUniqueConstraint is a JSON schema extension that provides a
 // "unique" property of type array
-var JSONSchemaUniqueConstrain = jsonschema.MustCompileString(
+var JSONSchemaUniqueConstraint = jsonschema.MustCompileString(
 	"https://governor/json-schemas/unique.json",
 	`{
 		"properties": {
@@ -27,20 +27,20 @@ var JSONSchemaUniqueConstrain = jsonschema.MustCompileString(
 	}`,
 )
 
-// UniqueConstrainSchema is the schema struct for the unique constrain JSON schema extension
-type UniqueConstrainSchema struct {
+// UniqueConstraintSchema is the schema struct for the unique constraint JSON schema extension
+type UniqueConstraintSchema struct {
 	UniqueFieldTypesMap map[string]string
 	ERD                 *models.ExtensionResourceDefinition
 	ctx                 context.Context
 	db                  boil.ContextExecutor
 }
 
-// UniqueConstrainSchema implements jsonschema.ExtSchema
-var _ jsonschema.ExtSchema = (*UniqueConstrainSchema)(nil)
+// UniqueConstraintSchema implements jsonschema.ExtSchema
+var _ jsonschema.ExtSchema = (*UniqueConstraintSchema)(nil)
 
 // Validate checks the uniqueness of the provided value against a database
 // to ensure the unique constraint is satisfied.
-func (s *UniqueConstrainSchema) Validate(_ jsonschema.ValidationContext, v interface{}) error {
+func (s *UniqueConstraintSchema) Validate(_ jsonschema.ValidationContext, v interface{}) error {
 	// Skip validation if no database is provided
 	if s.db == nil {
 		return nil
@@ -82,24 +82,25 @@ func (s *UniqueConstrainSchema) Validate(_ jsonschema.ValidationContext, v inter
 		return &jsonschema.ValidationError{
 			InstanceLocation: s.ERD.Name,
 			KeywordLocation:  "unique",
-			Message:          ErrUniqueConstrainViolation.Error(),
+			Message:          ErrUniqueConstraintViolation.Error(),
 		}
 	}
 
 	return nil
 }
 
-// UniqueConstrainCompiler is the compiler struct for the unique constrain JSON schema extension
-type UniqueConstrainCompiler struct {
+// UniqueConstraintCompiler is the compiler struct for the unique constraint JSON schema extension
+type UniqueConstraintCompiler struct {
 	ERD *models.ExtensionResourceDefinition
 	ctx context.Context
 	db  boil.ContextExecutor
 }
 
-// UniqueConstrainCompiler implements jsonschema.ExtCompiler
-var _ jsonschema.ExtCompiler = (*UniqueConstrainCompiler)(nil)
+// UniqueConstraintCompiler implements jsonschema.ExtCompiler
+var _ jsonschema.ExtCompiler = (*UniqueConstraintCompiler)(nil)
 
-func (uc *UniqueConstrainCompiler) Compile(
+// Compile compiles the unique constraint JSON schema extension
+func (uc *UniqueConstraintCompiler) Compile(
 	_ jsonschema.CompilerContext, m map[string]interface{},
 ) (jsonschema.ExtSchema, error) {
 	unique, ok := m["unique"]
@@ -131,10 +132,10 @@ func (uc *UniqueConstrainCompiler) Compile(
 		)
 	}
 
-	return uc.compileUniqueConstrain(uniqueFields, requiredFields, propertiesMap)
+	return uc.compileUniqueConstraint(uniqueFields, requiredFields, propertiesMap)
 }
 
-func (uc *UniqueConstrainCompiler) compileUniqueConstrain(uniqueFields, requiredFields []string, propertiesMap map[string]interface{}) (jsonschema.ExtSchema, error) {
+func (uc *UniqueConstraintCompiler) compileUniqueConstraint(uniqueFields, requiredFields []string, propertiesMap map[string]interface{}) (jsonschema.ExtSchema, error) {
 	requiredMap := make(map[string]bool, len(requiredFields))
 	for _, f := range requiredFields {
 		requiredMap[f] = true
@@ -173,7 +174,7 @@ func (uc *UniqueConstrainCompiler) compileUniqueConstrain(uniqueFields, required
 		resultUniqueFields[fieldName] = fieldType
 	}
 
-	return &UniqueConstrainSchema{resultUniqueFields, uc.ERD, uc.ctx, uc.db}, nil
+	return &UniqueConstraintSchema{resultUniqueFields, uc.ERD, uc.ctx, uc.db}, nil
 }
 
 // Checks if the provided field type is valid for unique constraints
@@ -198,6 +199,7 @@ func assertStringSlice(value interface{}) ([]string, error) {
 	}
 
 	strs := make([]string, len(values))
+
 	for i, v := range values {
 		str, ok := v.(string)
 		if !ok {
@@ -207,6 +209,7 @@ func assertStringSlice(value interface{}) ([]string, error) {
 				reflect.TypeOf(v),
 			)
 		}
+
 		strs[i] = str
 	}
 
