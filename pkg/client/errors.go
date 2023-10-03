@@ -52,5 +52,8 @@ var (
 	ErrMissingExtensionID = errors.New("missing extension id in request")
 
 	// ErrMissingERDID is returned when a a missing or bad extension resource definition ID is passed to a request
-	ErrMissingERDID = errors.New("missing extension id in request")
+	ErrMissingERDID = errors.New("missing ERD id in request")
+
+	// ErrMissingResourceID is returned when a a missing or bad resource ID is passed to a request
+	ErrMissingResourceID = errors.New("missing resource id in request")
 )
